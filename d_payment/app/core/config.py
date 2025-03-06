@@ -20,8 +20,8 @@ class Settings(BaseSettings):
     """
 
     # アプリケーション情報
-    APP_NAME: str = "SpModePaymentGateway"
-    APP_DESCRIPTION: str = "spmode決済リクエスト変換・転送サービス"
+    APP_NAME: str = "DPaymentGateway"
+    APP_DESCRIPTION: str = "d決済リクエスト変換・転送サービス"
     APP_VERSION: str = "0.1.0"
 
     # API設定
@@ -32,8 +32,13 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "production"
 
     # 外部APIの設定
-    PAYMENT_API_URL: str = "https://payment1.spmode.ne.jp/api/fes/rksrv/testsrvresource"
+    PAYMENT_API_URL: str = ""
     PAYMENT_API_TIMEOUT: int = 30
+    
+    # 認証情報
+    PAYMENT_COMPANY_CODE: str = "DCM12345678"
+    PAYMENT_STORE_CODE: str = "TNP00000001"
+    PAYMENT_AUTHENTICATION_PASS: str = "XXXXXXXXXXXXXXXXXXXX"
 
     # CORSの設定
     BACKEND_CORS_ORIGINS: List[AnyHttpUrl] = []

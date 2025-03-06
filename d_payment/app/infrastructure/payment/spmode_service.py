@@ -1,7 +1,7 @@
 """
-spmode決済サービスモジュール。
+d決済サービスモジュール。
 
-spmode決済サービスとの連携を実装します。
+d決済サービスとの連携を実装します。
 """
 
 from __future__ import annotations
@@ -19,20 +19,20 @@ from app.infrastructure.http_client import HttpClient
 logger = logging.getLogger(__name__)
 
 
-class SpmodePaymentService:
+class DPaymentService:
     """
-    spmode決済サービスファクトリ。
+    d決済サービスファクトリ。
 
-    spmode決済サービスのインスタンスを生成します。
+    d決済サービスのインスタンスを生成します。
     """
 
     @staticmethod
     def create() -> PaymentServiceInterface:
         """
-        spmode決済サービスのインスタンスを生成します。
+        d決済サービスのインスタンスを生成します。
 
         Returns:
-            PaymentServiceInterface: spmode決済サービスのインスタンス
+            PaymentServiceInterface: d決済サービスのインスタンス
         """
         http_client = HttpClient()
         return PaymentService(http_client)

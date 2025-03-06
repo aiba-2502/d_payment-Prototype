@@ -9,7 +9,7 @@ from __future__ import annotations
 from fastapi import Depends
 
 from app.domain.interfaces.payment_service import PaymentServiceInterface
-from app.infrastructure.payment.spmode_service import SpmodePaymentService
+from app.infrastructure.payment.spmode_service import DPaymentService
 
 
 def get_payment_service() -> PaymentServiceInterface:
@@ -21,4 +21,4 @@ def get_payment_service() -> PaymentServiceInterface:
     Returns:
         PaymentServiceInterface: 決済サービスのインスタンス
     """
-    return SpmodePaymentService.create()
+    return DPaymentService.create()

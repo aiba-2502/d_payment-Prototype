@@ -44,7 +44,10 @@ class PaymentService(PaymentServiceInterface):
         """
         決済リクエストを処理します。
 
-        受信したリクエストを変換し、外部APIに送信します。
+        このメソッドは以下の手順で処理を行います：
+        1. 受信したリクエストデータを外部API用の形式に変換
+        2. 外部APIにデータを送信
+        3. 外部APIからのレスポンスをそのまま返す
 
         Args:
             request_data: 受信した決済リクエストデータ
@@ -53,77 +56,86 @@ class PaymentService(PaymentServiceInterface):
             PaymentResponse: 処理結果
         """
         try:
-            logger.info("Processing payment request")
+            logger.info("決済リクエストの処理を開始します")
 
-            # 受信データを送信データに変換
+            # ステップ1: 受信データを外部API用の形式に変換
             payment_request = self._transform_request(request_data)
-
-            # 送信データの辞書形式への変換
             request_dict = self._payment_request_to_dict(payment_request)
 
             # 送信データをロギング（機密情報は除く）
             safe_log_data = request_dict.copy()
             if "authenticationPass" in safe_log_data:
                 safe_log_data["authenticationPass"] = "****"
-            logger.info(f"Transformed request: {safe_log_data}")
+            logger.info(f"変換されたリクエスト: {safe_log_data}")
 
-            # 外部APIにデータを送信
+            # ステップ2: 外部APIにデータを送信
+            logger.info(f"外部API {settings.PAYMENT_API_URL} にリクエストを送信します")
             response = await self._http_client.post(
                 url=settings.PAYMENT_API_URL, data=request_dict
             )
+            logger.info("外部APIからレスポンスを受信しました")
 
+            # ステップ3: 外部APIからのレスポンスをそのまま返す
             return PaymentResponse(
                 success=True,
-                message="Payment request processed successfully",
+                message="決済リクエストが正常に処理されました",
                 data=response,
             )
 
         except Exception as e:
-            logger.exception(f"Error processing payment request: {str(e)}")
+            logger.exception(f"決済リクエスト処理中にエラーが発生しました: {str(e)}")
             return PaymentResponse(
-                success=False, message="Payment processing error", error=str(e)
+                success=False, message="決済処理エラー", error=str(e)
             )
 
     def _transform_request(self, request_data: Dict[str, Any]) -> PaymentRequest:
         """
-        受信リクエストを送信リクエストに変換します。
+        受信リクエストを外部API用のリクエストに変換します。
 
         Args:
             request_data: 受信したリクエストデータ
 
         Returns:
-            PaymentRequest: 変換された送信用リクエスト
+            PaymentRequest: 変換された外部API用リクエスト
         """
-        # 現在のタイムスタンプをISO 8601形式で生成
+        # 現在のタイムスタンプをISO 8601形式で生成（日本時間）
         current_timestamp = datetime.now().isoformat(timespec="milliseconds") + "+09:00"
 
         # リクエストデータから必要な情報を抽出
-        # 実際の実装では、受信データの構造に応じて適切にマッピングする必要があります
-        amount = str(request_data.get("paymentInfo", {}).get("amount", "0"))
-        order_number = request_data.get("paymentInfo", {}).get(
-            "orderNumber", "SPNM0000000000000000"
-        )
-        description = request_data.get("paymentInfo", {}).get("description", "")
+        payment_info = request_data.get("paymentInfo", {})
+        
+        # 基本情報の取得（デフォルト値付き）
+        amount = str(payment_info.get("amount", "0"))
+        order_number = payment_info.get("orderNumber", "SPNM0000000000000000")
+        description = payment_info.get("description", "")
+        
+        # 表示内容の取得（デフォルト値付き）
+        # displayContents1が指定されていない場合は、descriptionを使用
+        display_contents1 = payment_info.get("displayContents1", description[:20])
+        display_contents2 = payment_info.get("displayContents2", "")
+        
+        # 請求トークンの取得（デフォルト値付き）
+        billing_token = request_data.get("billingToken", "9000000248250856006510")
 
         # 決済リクエスト項目の作成
         regi_charge_req_items = [
             RegiChargeRequestItem(
                 store_order_number=order_number,
                 settlement_amount=amount,
-                display_contents1=description[:20],  # 表示内容に制限がある場合を想定
-                display_contents2="bbb",
+                display_contents1=display_contents1,
+                display_contents2=display_contents2,
             )
         ]
 
-        # 送信用リクエストの作成
+        # 外部API用リクエストの作成
         return PaymentRequest(
-            company_code="DCM12345678",
-            store_code="TNP00000001",
-            authentication_pass="XXXXXXXXXXXXXXXXXXXX",
+            company_code=settings.PAYMENT_COMPANY_CODE,
+            store_code=settings.PAYMENT_STORE_CODE,
+            authentication_pass=settings.PAYMENT_AUTHENTICATION_PASS,
             transaction_id="transid0000000000001",
-            req_timestamp=current_timestamp,
+            req_timestamp=current_timestamp,  # 現在時刻を自動設定
             exec_mode="000",
-            billing_token="9000000248250856006510",
+            billing_token=billing_token,
             regi_charge_req_list=regi_charge_req_items,
         )
 
@@ -131,13 +143,13 @@ class PaymentService(PaymentServiceInterface):
         self, payment_request: PaymentRequest
     ) -> Dict[str, Any]:
         """
-        PaymentRequestをAPIリクエスト用の辞書に変換します。
+        PaymentRequestオブジェクトを外部API用の辞書形式に変換します。
 
         Args:
-            payment_request: 送信用リクエスト
+            payment_request: 送信用リクエストオブジェクト
 
         Returns:
-            Dict[str, Any]: 変換された辞書
+            Dict[str, Any]: 外部API用の辞書形式データ
         """
         # RegiChargeRequestItemの変換
         regi_charge_req_list = []

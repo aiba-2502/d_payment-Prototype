@@ -1,4 +1,4 @@
-.PHONY: up down build logs test lint format shell help
+.PHONY: up down build logs test lint format shell help docker-test
 
 # デフォルトのターゲット
 .DEFAULT_GOAL := help
@@ -25,8 +25,11 @@ logs: ## アプリケーションのログを表示
 	docker-compose logs -f
 
 # 開発関連コマンド
-test: ## テストを実行
-	docker-compose exec $(APP_CONTAINER) pytest
+test: ## ローカル環境でテストを実行
+	pytest
+
+docker-test: ## Docker環境でテストを実行
+	docker-compose run --rm $(APP_CONTAINER) pytest
 
 lint: ## コードの静的解析を実行
 	docker-compose exec $(APP_CONTAINER) flake8 app tests

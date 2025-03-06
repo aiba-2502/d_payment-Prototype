@@ -26,10 +26,13 @@ async def test_process_payment_success():
 
     # テスト対象データ
     request_data = {
+        "billingToken": "9000000248250856006510",
         "paymentInfo": {
             "amount": 3980,
             "orderNumber": "TEST12345",
             "description": "テスト決済",
+            "displayContents1": "カスタム表示1",
+            "displayContents2": "カスタム表示2"
         }
     }
 
@@ -47,12 +50,47 @@ async def test_process_payment_success():
     assert "storeCode" in http_client.last_data
     assert "authenticationPass" in http_client.last_data
     assert "regiChargeReqList" in http_client.last_data
+    assert http_client.last_data["billingToken"] == "9000000248250856006510"
 
     # 変換されたリクエストの詳細チェック
     charge_req = http_client.last_data["regiChargeReqList"][0]
     assert charge_req["storeOrderNumber"] == "TEST12345"
     assert charge_req["settlementAmount"] == "3980"
-    assert "テスト決済" in charge_req["displayContents1"]
+    assert charge_req["displayContents1"] == "カスタム表示1"
+    assert charge_req["displayContents2"] == "カスタム表示2"
+
+
+@pytest.mark.asyncio
+async def test_process_payment_with_default_values():
+    """
+    デフォルト値を使用した決済処理をテストします。
+    """
+    # モックの準備
+    mock_response = {"status": "success", "responseCode": "0000"}
+    http_client = MockHttpClient(mock_response)
+    payment_service = PaymentService(http_client)
+
+    # 最小限のテスト対象データ
+    request_data = {
+        "paymentInfo": {
+            "amount": 3980,
+            "orderNumber": "TEST12345",
+            "description": "テスト決済",
+        }
+    }
+
+    # テスト実行
+    response = await payment_service.process_payment(request_data)
+
+    # アサーション
+    assert isinstance(response, PaymentResponse)
+    assert response.success is True
+
+    # 変換されたリクエストの詳細チェック
+    charge_req = http_client.last_data["regiChargeReqList"][0]
+    assert charge_req["displayContents1"] == "テスト決済"
+    assert charge_req["displayContents2"] == ""
+    assert http_client.last_data["billingToken"] == "9000000248250856006510"
 
 
 @pytest.mark.asyncio
